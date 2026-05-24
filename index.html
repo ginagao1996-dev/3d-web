@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GINA Figurines Carousel</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html,
+    body,
+    #root {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + ReactDOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel CDN: allows JSX directly in this single HTML file -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    const IMAGES = [
+      { src: 'https://github.com/ginagao1996-dev/3d-web/blob/main/Boy1.png?raw=true', bg: '#D4A373', panel: '#E0B589' },
+      { src: 'https://github.com/ginagao1996-dev/3d-web/blob/main/Boy2.png?raw=true', bg: '#8F9B82', panel: '#A2AD96' },
+      { src: 'https://github.com/ginagao1996-dev/3d-web/blob/main/G2.png?raw=true', bg: '#B8929A', panel: '#C9A6AE' },
+      { src: 'https://github.com/ginagao1996-dev/3d-web/blob/main/G1.png?raw=true', bg: '#7B8C9C', panel: '#909FA8' },
+    ];
+
+    function ArrowIcon({ direction = 'right', size = 26, strokeWidth = 2.25, className = '' }) {
+      const rotation = direction === 'left' ? 'rotate(180deg)' : 'rotate(0deg)';
+
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+          style={{ transform: rotation }}
+          aria-hidden="true"
+        >
+          <path d="M5 12h14" />
+          <path d="m12 5 7 7-7 7" />
+        </svg>
+      );
+    }
+
+    function App() {
+      const [activeIndex, setActiveIndex] = useState(0);
+      const [isAnimating, setIsAnimating] = useState(false);
+      const [isMobile, setIsMobile] = useState(false);
+      const prevActiveIndex = useRef(0);
+
+      useEffect(() => {
+        IMAGES.forEach((img) => {
+          const image = new Image();
+          image.src = img.src;
+        });
+
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
+      const navigate = useCallback((direction) => {
+        if (isAnimating) return;
+
+        setIsAnimating(true);
+        prevActiveIndex.current = activeIndex;
+
+        setActiveIndex((prev) =>
+          direction === 'next' ? (prev + 1) % IMAGES.length : (prev + IMAGES.length - 1) % IMAGES.length
+        );
+
+        window.setTimeout(() => {
+          setIsAnimating(false);
+        }, 650);
+      }, [isAnimating, activeIndex]);
+
+      const getRoleStyles = (index) => {
+        let role = 'back';
+        if (index === activeIndex) role = 'center';
+        else if (index === (activeIndex + IMAGES.length - 1) % IMAGES.length) role = 'left';
+        else if (index === (activeIndex + 1) % IMAGES.length) role = 'right';
+
+        const baseStyles = {
+          center: {
+            transform: `translateX(-50%) scale(${isMobile ? 1.25 : 1.68})`,
+            filter: 'blur(0px)',
+            opacity: 1,
+            left: '50%',
+            height: isMobile ? '60%' : '92%',
+            bottom: isMobile ? '22%' : '0',
+            zIndex: 20,
+          },
+          left: {
+            transform: 'translateX(-50%) scale(1)',
+            filter: 'blur(2px)',
+            opacity: 0.85,
+            left: isMobile ? '20%' : '30%',
+            height: isMobile ? '16%' : '28%',
+            bottom: isMobile ? '32%' : '12%',
+            zIndex: 10,
+          },
+          right: {
+            transform: 'translateX(-50%) scale(1)',
+            filter: 'blur(2px)',
+            opacity: 0.85,
+            left: isMobile ? '80%' : '70%',
+            height: isMobile ? '16%' : '28%',
+            bottom: isMobile ? '32%' : '12%',
+            zIndex: 10,
+          },
+          back: {
+            transform: 'translateX(-50%) scale(1)',
+            filter: 'blur(4px)',
+            opacity: 1,
+            left: '50%',
+            height: isMobile ? '13%' : '22%',
+            bottom: isMobile ? '32%' : '12%',
+            zIndex: 5,
+          },
+        };
+
+        const styles = { ...baseStyles[role] };
+
+        if (isAnimating) {
+          if (index === activeIndex) {
+            styles.zIndex = 30;
+          } else if (index === prevActiveIndex.current) {
+            styles.zIndex = 25;
+          }
+        }
+
+        return styles;
+      };
+
+      const grainSvg = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E`;
+
+      return (
+        <div
+          className="relative w-full overflow-hidden"
+          style={{
+            backgroundColor: IMAGES[activeIndex].bg,
+            transition: 'background-color 650ms cubic-bezier(0.4,0,0.2,1)',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <div className="relative w-full overflow-hidden" style={{ height: '100vh' }}>
+            <div
+              className="absolute inset-0 pointer-events-none z-[50]"
+              style={{
+                opacity: 0.4,
+                backgroundImage: `url("${grainSvg}")`,
+                backgroundSize: '200px 200px',
+                backgroundRepeat: 'repeat',
+              }}
+            />
+
+            <div
+              className="absolute inset-x-0 flex items-center justify-center pointer-events-none select-none z-[2]"
+              style={{ top: '18%' }}
+            >
+              <span
+                className="text-white uppercase whitespace-nowrap"
+                style={{
+                  fontFamily: "'Anton', sans-serif",
+                  fontSize: 'clamp(90px, 28vw, 380px)',
+                  fontWeight: 900,
+                  lineHeight: 1,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                3D SHAPE
+              </span>
+            </div>
+
+            <div className="absolute top-6 left-4 sm:left-8 z-[60]">
+              <span className="text-xs font-semibold uppercase text-white opacity-90 tracking-[0.18em]">
+                GINA
+              </span>
+            </div>
+
+            <div className="absolute inset-0 z-[3]">
+              {IMAGES.map((img, index) => (
+                <div
+                  key={img.src}
+                  className="absolute"
+                  style={{
+                    aspectRatio: '0.6 / 1',
+                    willChange: 'transform, filter, opacity',
+                    transition: 'transform 650ms cubic-bezier(0.4,0,0.2,1), filter 650ms cubic-bezier(0.4,0,0.2,1), opacity 650ms cubic-bezier(0.4,0,0.2,1), left 650ms cubic-bezier(0.4,0,0.2,1), bottom 650ms cubic-bezier(0.4,0,0.2,1), height 650ms cubic-bezier(0.4,0,0.2,1)',
+                    ...getRoleStyles(index),
+                  }}
+                >
+                  <img
+                    src={img.src}
+                    alt={`Gina Figurine ${index + 1}`}
+                    draggable={false}
+                    className="w-full h-full object-contain object-bottom drop-shadow-2xl"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="absolute bottom-6 left-4 sm:bottom-20 sm:left-24 z-[60] max-w-[320px]">
+              <p
+                className="font-bold uppercase tracking-widest mb-2 sm:mb-3 text-base sm:text-[22px] text-white opacity-95"
+                style={{ letterSpacing: '0.02em' }}
+              >
+                GINA FIGURINES
+              </p>
+              <p className="hidden sm:block text-xs sm:text-sm text-white opacity-85 leading-[1.6] mb-4 sm:mb-5">
+                The artwork is stunning, shipped fully prepared. The finish is a vision, the 3D craft is flawless. Many thanks! Wishing you the win. Order now.
+              </p>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => navigate('prev')}
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-transparent border-2 border-white/80 flex items-center justify-center text-white transition-all duration-150 hover:scale-105 hover:bg-white/10"
+                  aria-label="Previous figurine"
+                >
+                  <ArrowIcon direction="left" size={26} strokeWidth={2.25} />
+                </button>
+                <button
+                  onClick={() => navigate('next')}
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-transparent border-2 border-white/80 flex items-center justify-center text-white transition-all duration-150 hover:scale-105 hover:bg-white/10"
+                  aria-label="Next figurine"
+                >
+                  <ArrowIcon direction="right" size={26} strokeWidth={2.25} />
+                </button>
+              </div>
+            </div>
+
+            <div className="absolute bottom-6 right-4 sm:bottom-20 sm:right-10 z-[60]">
+              <a
+                href="#"
+                className="flex items-center text-white uppercase no-underline opacity-95 hover:opacity-100 transition-opacity duration-200"
+                style={{
+                  fontFamily: "'Anton', sans-serif",
+                  fontSize: 'clamp(20px, 4vw, 56px)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1,
+                }}
+              >
+                DISCOVER IT
+                <ArrowIcon direction="right" size={32} strokeWidth={2.25} className="w-5 h-5 sm:w-8 sm:h-8 ml-2" />
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
